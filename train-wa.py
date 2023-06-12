@@ -100,7 +100,7 @@ for epoch in range(start_epoch, NUM_ADV_EPOCHS+1):
     if args.scheduler:
         last_lr = trainer.scheduler.get_last_lr()[0]
     
-    res = trainer.train(train_dataloader, epoch=epoch, adversarial=True)
+    res = trainer.train(train_dataloader, epoch=epoch, adversarial=not args.no_adv)
     test_acc = trainer.eval(test_dataloader)
     
     logger.log('Loss: {:.4f}.\tLR: {:.4f}'.format(res['loss'], last_lr))
@@ -112,13 +112,13 @@ for epoch in range(start_epoch, NUM_ADV_EPOCHS+1):
     epoch_metrics.update({'epoch': epoch, 'lr': last_lr, 'test_clean_acc': test_acc, 'test_adversarial_acc': ''})
     
     if epoch % args.adv_eval_freq == 0 or epoch == NUM_ADV_EPOCHS:        
-        test_adv_acc = trainer.eval(test_dataloader, adversarial=True)
+        test_adv_acc = trainer.eval(test_dataloader, adversarial=not args.no_adv)
         logger.log('Adversarial Accuracy-\tTrain: {:.2f}%.\tTest: {:.2f}%.'.format(res['adversarial_acc']*100, 
                                                                                    test_adv_acc*100))
         epoch_metrics.update({'test_adversarial_acc': test_adv_acc})
     else:
         logger.log('Adversarial Accuracy-\tTrain: {:.2f}%.'.format(res['adversarial_acc']*100))
-    eval_adv_acc = trainer.eval(eval_dataloader, adversarial=True)
+    eval_adv_acc = trainer.eval(eval_dataloader, adversarial=not args.no_adv)
     logger.log('Adversarial Accuracy-\tEval: {:.2f}%.'.format(eval_adv_acc*100))
     epoch_metrics['eval_adversarial_acc'] = eval_adv_acc
     

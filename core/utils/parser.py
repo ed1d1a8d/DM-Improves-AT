@@ -71,6 +71,9 @@ def parser_train():
     parser.add_argument('--ls', type=float, default=0.1, help='label smoothing.')
     parser.add_argument('--clip_value', default=0, type=float)
     parser.add_argument('--CutMix', action='store_true', default=False, help='use CutMix.')
+
+    ### Whether to turn off adversarial training
+    parser.add_argument('--no-adv', action='store_true', default=False, help='no adversarial training.')
     return parser
 
 
@@ -101,4 +104,3 @@ def parser_eval():
     
     parser.add_argument('--seed', type=int, default=1, help='Random seed.')
     return parser
-
