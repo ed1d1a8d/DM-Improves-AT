@@ -10,6 +10,7 @@ RUN apt-get update -q \
   && apt-get install -y \
   curl \
   git \
+  htop \
   python3.9-venv \
   python3.9 \
   sudo \

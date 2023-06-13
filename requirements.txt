@@ -1,11 +1,14 @@
-numpy
-pandas
-
-matplotlib
-jupyterlab
-
 torch==1.8.0
 torchvision==0.9.0
 
 git+https://github.com/fra31/auto-attack
 git+https://github.com/ildoonet/pytorch-randaugment
+
+numpy
+pandas
+tqdm
+
+matplotlib
+jupyterlab
+
+gpustat
