@@ -78,7 +78,7 @@ class WATrainer(Trainer):
         """
         Run one epoch of training.
         """
-        metrics = pd.DataFrame()
+        metrics = []
         self.model.train()
         
         update_iter = 0
@@ -131,13 +131,13 @@ class WATrainer(Trainer):
             global_step = (epoch - 1) * self.update_steps + update_iter
             ema_update(self.wa_model, self.model, global_step, decay_rate=self.params.tau, 
                        warmup_steps=self.warmup_steps, dynamic_decay=True)
-            metrics = metrics.append(pd.DataFrame(batch_metrics, index=[0]), ignore_index=True)
+            metrics.append(batch_metrics)
         
         if self.params.scheduler in ['step', 'converge', 'cosine', 'cosinew']:
             self.scheduler.step()
         
         update_bn(self.wa_model, self.model) 
-        return dict(metrics.mean())
+        return dict(pd.DataFrame(metrics).mean())
     
     
     def trades_loss(self, x, y, beta):
@@ -188,7 +188,8 @@ class WATrainer(Trainer):
                     x_adv, _ = self.eval_attack.perturb(x, y)            
                 out = self.wa_model(x_adv)
             else:
-                out = self.wa_model(x)
+                with torch.no_grad():
+                    out = self.wa_model(x)
             acc += accuracy(y, out)
         acc /= len(dataloader)
         return acc

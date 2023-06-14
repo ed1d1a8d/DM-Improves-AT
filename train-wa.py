@@ -79,7 +79,7 @@ last_lr = args.lr
 
 if NUM_ADV_EPOCHS > 0:
     logger.log('\n\n')
-    metrics = pd.DataFrame()
+    metrics = []
     logger.log('Standard Accuracy-\tTest: {:2f}%.'.format(trainer.eval(test_dataloader)*100))
     
     old_score = [0.0, 0.0]
@@ -100,7 +100,12 @@ for epoch in range(start_epoch, NUM_ADV_EPOCHS+1):
     if args.scheduler:
         last_lr = trainer.scheduler.get_last_lr()[0]
     
+    torch.cuda.empty_cache()
     res = trainer.train(train_dataloader, epoch=epoch, adversarial=not args.no_adv)
+    if args.no_adv:
+        res['adversarial_acc'] = np.nan
+
+    torch.cuda.empty_cache()
     test_acc = trainer.eval(test_dataloader)
     
     logger.log('Loss: {:.4f}.\tLR: {:.4f}'.format(res['loss'], last_lr))
@@ -111,19 +116,22 @@ for epoch in range(start_epoch, NUM_ADV_EPOCHS+1):
     epoch_metrics = {'train_'+k: v for k, v in res.items()}
     epoch_metrics.update({'epoch': epoch, 'lr': last_lr, 'test_clean_acc': test_acc, 'test_adversarial_acc': ''})
     
-    if epoch % args.adv_eval_freq == 0 or epoch == NUM_ADV_EPOCHS:        
-        test_adv_acc = trainer.eval(test_dataloader, adversarial=not args.no_adv)
+    if args.no_adv:
+        pass
+    elif epoch % args.adv_eval_freq == 0 or epoch == NUM_ADV_EPOCHS:        
+        test_adv_acc = trainer.eval(test_dataloader, adversarial=True)
         logger.log('Adversarial Accuracy-\tTrain: {:.2f}%.\tTest: {:.2f}%.'.format(res['adversarial_acc']*100, 
                                                                                    test_adv_acc*100))
         epoch_metrics.update({'test_adversarial_acc': test_adv_acc})
     else:
         logger.log('Adversarial Accuracy-\tTrain: {:.2f}%.'.format(res['adversarial_acc']*100))
-    eval_adv_acc = trainer.eval(eval_dataloader, adversarial=not args.no_adv)
-    logger.log('Adversarial Accuracy-\tEval: {:.2f}%.'.format(eval_adv_acc*100))
-    epoch_metrics['eval_adversarial_acc'] = eval_adv_acc
+
+    eval_acc = trainer.eval(eval_dataloader, adversarial=not args.no_adv)
+    logger.log('Accuracy-\tEval: {:.2f}%.'.format(eval_acc*100))
+    epoch_metrics['eval_acc'] = eval_acc
     
-    if eval_adv_acc >= old_score[1]:
-        old_score[0], old_score[1] = test_acc, eval_adv_acc
+    if eval_acc >= old_score[1]:
+        old_score[0], old_score[1] = test_acc, eval_acc
         trainer.save_model(WEIGHTS)
     # trainer.save_model(os.path.join(LOG_DIR, 'weights-last.pt'))
     if epoch % 10 == 0:
@@ -132,8 +140,8 @@ for epoch in range(start_epoch, NUM_ADV_EPOCHS+1):
         shutil.copyfile(WEIGHTS, os.path.join(LOG_DIR, f'weights-best-epoch{str(epoch)}.pt'))
 
     logger.log('Time taken: {}'.format(format_time(time.time()-start)))
-    metrics = metrics.append(pd.DataFrame(epoch_metrics, index=[0]), ignore_index=True)
-    metrics.to_csv(os.path.join(LOG_DIR, 'stats_adv.csv'), index=False)
+    metrics.append(epoch_metrics)
+    pd.DataFrame(metrics).to_csv(os.path.join(LOG_DIR, 'stats_adv.csv'), index=False)
 
     
     

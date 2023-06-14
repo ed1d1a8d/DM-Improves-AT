@@ -100,7 +100,7 @@ class Trainer(object):
         """
         Run one epoch of training.
         """
-        metrics = pd.DataFrame()
+        metrics = []
         self.model.train()
         
         for data in tqdm(dataloader, desc='Epoch {}: '.format(epoch), disable=not verbose):
@@ -124,11 +124,11 @@ class Trainer(object):
             if self.params.scheduler in ['cyclic']:
                 self.scheduler.step()
             
-            metrics = metrics.append(pd.DataFrame(batch_metrics, index=[0]), ignore_index=True)
+            metrics.append(batch_metrics)
         
         if self.params.scheduler in ['step', 'converge', 'cosine', 'cosinew']:
             self.scheduler.step()
-        return dict(metrics.mean())
+        return dict(pd.DataFrame(metrics).mean())
     
     
     def standard_loss(self, x, y):
